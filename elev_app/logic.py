@@ -106,3 +106,9 @@ def manage_requests(self, elevator):
             elevator.elev_direction = self.move_elevator(
                 elevator, elevator.current_floor)
             elevator.save()
+
+
+def initialize_elevator_system():
+    num_elevators = 5
+    elevator_system = ElevatorSystem(num_elevators)
+    return elevator_system
