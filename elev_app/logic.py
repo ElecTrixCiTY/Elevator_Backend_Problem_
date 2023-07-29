@@ -1,3 +1,4 @@
+from django.db.models import F, Max
 from .models import ElevatorModel, RequestModel
 from math import inf
 
@@ -9,7 +10,7 @@ class ElevatorSystemModel:
     def __init__(self, num_elevators):
         self.elevators = []
         for i in range(1, num_elevators + 1):
-            elevator = ElevatorModel(elevator_number=i)
+            elevator = ElevatorModel(elev_id=i)
             elevator.save()
             self.elevators.append(elevator)
 
@@ -62,19 +63,36 @@ class ElevatorSystemModel:
             return "Down"
     
 
-    def manage_requests(self, elevator):
-        requests = RequestModel.objects.filter(current_floor = elevator.current_floor, floor_direction = elevator.elev_direction )
+def manage_requests(self, elevator):
+    requests = RequestModel.objects.filter(
+        current_floor=elevator.current_floor, direction=elevator.elev_direction)
 
-        if requests.door:
-            elevator.door = False
-            elevator.save()
+    if requests.exists():  # Check if there are requests for the current floor and direction
+        elevator.is_door_open = True
+        elevator.save()
 
-        next_request = RequestModel.objects.filter(floor_direction = elevator.elev_direction).order_by('timestamp').first()
-        
+        # Get the next_request with the smallest timestamp and the same direction as the elevator
+        next_request = RequestModel.objects.filter(
+            direction=elevator.elev_direction).order_by('timestamp').first()
+
         if next_request:
-            elevator.elev_direction = self.move_elevator(elevator, next_request.current_floor)
-            elevator_current_floor = next_request.current_floor
+            elevator.elev_direction = self.move_elevator(
+                elevator, next_request.current_floor)
+            elevator.current_floor = next_request.current_floor
             elevator.save()
         else:
             elevator.elev_direction = "Stopped"
+            elevator.save()
+    else:
+        # Check if the elevator is currently at a destination floor
+        # by comparing its current_floor with the destination_floor of the latest request
+        latest_destination = RequestModel.objects.filter(direction=elevator.elev_direction).aggregate(
+            Max('destination_floor'))['destination_floor__max']
+        if latest_destination is not None and elevator.current_floor == latest_destination:
+            elevator.is_door_open = True
+            elevator.save()
+        else:
+            elevator.is_door_open = False
+            elevator.elev_direction = self.move_elevator(
+                elevator, elevator.current_floor)
             elevator.save()
