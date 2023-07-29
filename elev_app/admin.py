@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import ElevatorModel, ElevatorSystemModel
+from .models import ElevatorModel, RequestModel
 
 
 admin.site.register(ElevatorModel)
-admin.site.register(ElevatorSystemModel)
+admin.site.register(RequestModel)
