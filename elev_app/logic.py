@@ -5,7 +5,7 @@ from math import inf
 #assigning elevators to the floors based on the direction(stopped or same direction)
 
 
-class ElevatorSystemModel:
+class ElevatorSystem:
 
     def __init__(self, num_elevators):
         self.elevators = []
@@ -16,7 +16,8 @@ class ElevatorSystemModel:
 
     def assign_elevator_to_floor(self, floor, direction):
         available_elevators = ElevatorModel.objects.filter(
-            elev_working=True, direction__in=['Stopped', direction])
+            elev_working=True, elev_direction__in=['Stopped', direction]
+        )
 
         if not available_elevators:
             return None
@@ -33,9 +34,18 @@ class ElevatorSystemModel:
         if best_elevator:
             best_elevator.elev_direction = self.move_elevator(best_elevator, floor)
             best_elevator.save()
+
+            # Update the assigned elevator's current floor to the destination floor
+            best_elevator.current_floor = floor
+            best_elevator.save()
+
             RequestModel.objects.create(
-                current_floor=floor, direction=direction, destination_floor=None)
+                current_floor=floor, floor_direction=direction, destination_floor=None
+            )
+
+            # Return the assigned elevator's ID for user feedback
             return best_elevator.elev_id
+
         return None
 
     def maintain_elevator(self, elev_id):
